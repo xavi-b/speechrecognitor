@@ -126,9 +126,9 @@ QJsonObject DeepSpeechWrapper::metadataToJson(Metadata* metadata)
     return object;
 }
 
-int DeepSpeechWrapper::process(QByteArray const& audio)
+void DeepSpeechWrapper::process(QByteArray const& audio)
 {
-    processAudio(ctx, audio, show_times);
+    QtConcurrent::run(std::bind(&DeepSpeechWrapper::processAudio, this, ctx, audio, show_times));
 }
 
 void DeepSpeechWrapper::processAudio(ModelState* context, QByteArray const& audio, bool show_times)

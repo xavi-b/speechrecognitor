@@ -7,6 +7,7 @@
 #include <QJsonArray>
 #include <deepspeech.h>
 #include <vector>
+#include <QtConcurrent/QtConcurrent>
 #include <QDebug>
 
 class DeepSpeechWrapper : public QObject
@@ -52,7 +53,7 @@ public:
     static std::vector<meta_word> wordsFromMetadata(Metadata* metadata);
     static QJsonObject metadataToJson(Metadata* metadata);
 
-    int process(QByteArray const& audio);
+    void process(QByteArray const& audio);
     void processAudio(ModelState* context, QByteArray const& audio, bool show_times);
     ds_result runLocalDsSTT(ModelState* aCtx, const short* aBuffer, size_t aBufferSize, bool extended_output, bool json_output);
 
