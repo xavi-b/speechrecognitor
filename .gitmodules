@@ -1,0 +1,9 @@
+[submodule "tensorflow"]
+	path = tensorflow
+	url = https://github.com/mozilla/tensorflow.git
+    ignore = all
+
+[submodule "DeepSpeech"]
+	path = DeepSpeech
+	url = https://github.com/mozilla/DeepSpeech.git
+    ignore = all
