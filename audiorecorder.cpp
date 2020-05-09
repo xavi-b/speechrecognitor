@@ -257,6 +257,16 @@ void AudioRecorder::processBuffer(QAudioBuffer const& buffer)
 {
     static int silenceSize = 0;
 
+    //TODO max duration setting widget
+    int maxDuration = 10000;
+    if(this->m_audioRecorder->duration() > maxDuration)
+    {
+        silenceSize = 0;
+        emit log("Max duration reached");
+        stop();
+        return;
+    }
+
     this->m_audioLevels = getBufferLevels(buffer);
 
     //TODO threshold setting widget
@@ -269,7 +279,7 @@ void AudioRecorder::processBuffer(QAudioBuffer const& buffer)
     if(silenceSize > 30)
     {
         silenceSize = 0;
-        qDebug() << "silence";
+        emit log("Silence");
         stop();
     }
 }
