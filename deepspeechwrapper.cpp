@@ -1,41 +1,42 @@
 #include "deepspeechwrapper.h"
 
-DeepSpeechWrapper::DeepSpeechWrapper(QObject *parent) : QObject(parent)
+DeepSpeechWrapper::DeepSpeechWrapper(QObject* parent)
+    : QObject(parent)
 {
-    this->lm = "/usr/share/mozilla/deepspeech/models/lm.binary";
+    this->lm    = "/usr/share/mozilla/deepspeech/models/lm.binary";
     this->model = "/usr/share/mozilla/deepspeech/models/output_graph.pbmm";
-    this->trie = "/usr/share/mozilla/deepspeech/models/trie";
+    this->trie  = "/usr/share/mozilla/deepspeech/models/trie";
 
     // Initialise DeepSpeech
     int status = DS_CreateModel(model.toStdString().c_str(), beam_width, &ctx);
 
-    if(status != 0)
+    if (status != 0)
     {
         emit error("Could not create model.");
         return;
     }
 
-    if(!lm.isEmpty() && (!trie.isEmpty() || load_without_trie))
+    if (!lm.isEmpty() && (!trie.isEmpty() || load_without_trie))
     {
         int status = DS_EnableDecoderWithLM(ctx,
                                             lm.toStdString().c_str(),
                                             trie.toStdString().c_str(),
                                             lm_alpha,
                                             lm_beta);
-        if(status != 0)
+        if (status != 0)
             emit error("Could not enable CTC decoder with LM.");
     }
 }
 
 DeepSpeechWrapper::~DeepSpeechWrapper()
 {
-    if(ctx != nullptr)
+    if (ctx != nullptr)
         DS_FreeModel(ctx);
 }
 
 int DeepSpeechWrapper::getModelSampleRate()
 {
-    if(ctx != nullptr)
+    if (ctx != nullptr)
         return DS_GetModelSampleRate(ctx);
 
     return 0;
@@ -47,7 +48,7 @@ QString DeepSpeechWrapper::metadataToString(Metadata* metadata)
 {
     QString retval = "";
 
-    for(int i = 0; i < metadata->num_items; i++)
+    for (int i = 0; i < metadata->num_items; i++)
     {
         MetadataItem item = metadata->items[i];
         retval += item.character;
@@ -60,45 +61,43 @@ std::vector<DeepSpeechWrapper::meta_word> DeepSpeechWrapper::wordsFromMetadata(M
 {
     std::vector<meta_word> word_list;
 
-    QString word = "";
-    float word_start_time = 0;
+    QString word            = "";
+    float   word_start_time = 0;
 
     // Loop through each character
-    for(int i = 0; i < metadata->num_items; i++)
+    for (int i = 0; i < metadata->num_items; i++)
     {
         MetadataItem item = metadata->items[i];
 
         qDebug() << item.character;
 
         // Append character to word if it's not a space
-        if(strcmp(item.character, u8" ") != 0)
+        if (strcmp(item.character, u8" ") != 0)
         {
             // Log the start time of the new word
-            if(word.length() == 0)
+            if (word.length() == 0)
                 word_start_time = item.start_time;
 
             word.append(item.character);
         }
 
         // Word boundary is either a space or the last character in the array
-        if(strcmp(item.character, " ") == 0
-        || strcmp(item.character, u8" ") == 0
-        || i == metadata->num_items-1)
+        if (strcmp(item.character, " ") == 0 || strcmp(item.character, u8" ") == 0 || i == metadata->num_items - 1)
         {
             float word_duration = item.start_time - word_start_time;
 
-            if(word_duration < 0)
+            if (word_duration < 0)
                 word_duration = 0;
 
             meta_word w;
-            w.word = word;
+            w.word       = word;
             w.start_time = word_start_time;
-            w.duration = word_duration;
+            w.duration   = word_duration;
 
             word_list.push_back(w);
 
             // Reset
-            word = "";
+            word            = "";
             word_start_time = 0;
         }
     }
@@ -114,12 +113,12 @@ QJsonObject DeepSpeechWrapper::metadataToJson(Metadata* metadata)
 
     object["metadata"].toObject()["confidence"] = metadata->confidence;
 
-    for(size_t i = 0; i < words.size(); i++)
+    for (size_t i = 0; i < words.size(); i++)
     {
         meta_word w = words[i];
 
-        object["words"].toArray()[i].toObject()["word"] = w.word;
-        object["words"].toArray()[i].toObject()["time"] = w.start_time;
+        object["words"].toArray()[i].toObject()["word"]     = w.word;
+        object["words"].toArray()[i].toObject()["time"]     = w.start_time;
         object["words"].toArray()[i].toObject()["duration"] = w.duration;
     }
 
@@ -137,14 +136,14 @@ void DeepSpeechWrapper::processAudio(ModelState* context, QByteArray const& audi
     // We take half of buffer_size because buffer is a char* while
     // LocalDsSTT() expected a short*
     ds_result result = runLocalDsSTT(context,
-                                 (const short*)audio.data(),
-                                  audio.size() / 2,
-                                  extended_metadata,
-                                  json_output);
+                                     (const short*)audio.data(),
+                                     audio.size() / 2,
+                                     extended_metadata,
+                                     json_output);
 
     emit log(QString("Result %1").arg(result.string));
 
-    if(show_times)
+    if (show_times)
         emit log(QString("cpu_time_overall=%1").arg(result.cpu_time_overall));
 }
 
@@ -154,51 +153,51 @@ DeepSpeechWrapper::ds_result DeepSpeechWrapper::runLocalDsSTT(ModelState* aCtx, 
 
     clock_t ds_start_time = clock();
 
-    if(extended_output)
+    if (extended_output)
     {
         Metadata* metadata = DS_SpeechToTextWithMetadata(aCtx, aBuffer, aBufferSize);
-        res.string = metadataToString(metadata);
+        res.string         = metadataToString(metadata);
         DS_FreeMetadata(metadata);
     }
-    else if(json_output)
+    else if (json_output)
     {
-        Metadata* metadata = DS_SpeechToTextWithMetadata(aCtx, aBuffer, aBufferSize);
+        Metadata*     metadata = DS_SpeechToTextWithMetadata(aCtx, aBuffer, aBufferSize);
         QJsonDocument doc(metadataToJson(metadata));
         res.string = doc.toJson(QJsonDocument::Compact);
         DS_FreeMetadata(metadata);
     }
-    else if(stream_size > 0)
+    else if (stream_size > 0)
     {
         StreamingState* ctx;
-        int status = DS_CreateStream(aCtx, &ctx);
-        if(status != DS_ERR_OK)
+        int             status = DS_CreateStream(aCtx, &ctx);
+        if (status != DS_ERR_OK)
         {
             res.string = strdup("");
             return res;
         }
 
-        size_t off = 0;
-        const char *last = nullptr;
-        while(off < aBufferSize)
+        size_t      off  = 0;
+        const char* last = nullptr;
+        while (off < aBufferSize)
         {
             size_t cur = aBufferSize - off > stream_size ? stream_size : aBufferSize - off;
             DS_FeedAudioContent(ctx, aBuffer + off, cur);
             off += cur;
 
             const char* partial = DS_IntermediateDecode(ctx);
-            if(last == nullptr || strcmp(last, partial))
+            if (last == nullptr || strcmp(last, partial))
             {
                 printf("%s\n", partial);
                 last = partial;
             }
             else
             {
-                DS_FreeString((char *) partial);
+                DS_FreeString((char*)partial);
             }
         }
-        if(last != nullptr)
+        if (last != nullptr)
         {
-            DS_FreeString((char *) last);
+            DS_FreeString((char*)last);
         }
         res.string = DS_FinishStream(ctx);
     }
@@ -209,7 +208,7 @@ DeepSpeechWrapper::ds_result DeepSpeechWrapper::runLocalDsSTT(ModelState* aCtx, 
 
     clock_t ds_end_infer = clock();
 
-    res.cpu_time_overall =((double)(ds_end_infer - ds_start_time)) / CLOCKS_PER_SEC;
+    res.cpu_time_overall = ((double)(ds_end_infer - ds_start_time)) / CLOCKS_PER_SEC;
 
     return res;
 }

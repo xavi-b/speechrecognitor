@@ -12,12 +12,9 @@
 class GoogleSpeechWrapper : public QObject
 {
     Q_OBJECT
-private:
-    QNetworkAccessManager* mgr;
-    QNetworkReply* reply = nullptr;
 
 public:
-    GoogleSpeechWrapper(QObject *parent = nullptr);
+    GoogleSpeechWrapper(QObject* parent = nullptr);
 
     void process(QByteArray const& audio, QAudioEncoderSettings const& settings);
     void replyFinished(QNetworkReply* reply);
@@ -26,6 +23,10 @@ public:
 signals:
     void log(QString const& log);
     void error(QString const& error);
+
+private:
+    QNetworkAccessManager* mgr;
+    QNetworkReply*         reply = nullptr;
 };
 
 #endif // GOOGLESPEECHWRAPPER_H
