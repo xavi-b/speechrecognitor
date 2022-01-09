@@ -7,6 +7,7 @@
 #include <QComboBox>
 #include "deepspeechwrapper.h"
 #include "googlespeechwrapper.h"
+#include "awstranscribewrapper.h"
 
 namespace Ui
 {
@@ -30,6 +31,7 @@ public slots:
 
     void sendToDeepSpeech(QByteArray const& audio);
     void sendToGoogle(QByteArray const& audio);
+    void sendToAWS(QByteArray const& audio);
 
 private slots:
     void setOutputLocation();
@@ -51,8 +53,9 @@ private:
     QList<AudioLevel*> m_audioLevels;
     bool               m_outputLocationSet = false;
 
-    DeepSpeechWrapper*   deepSpeechWrapper;
-    GoogleSpeechWrapper* googleSpeechWrapper;
+    DeepSpeechWrapper*    deepSpeechWrapper;
+    GoogleSpeechWrapper*  googleSpeechWrapper;
+    AWSTranscribeWrapper* awsTranscribeWrapper;
 };
 
 #endif // AUDIORECORDER_H

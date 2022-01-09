@@ -15,6 +15,16 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout_3">
+    <item row="8" column="1" colspan="2">
+     <layout class="QVBoxLayout" name="levelsLayout"/>
+    </item>
+    <item row="8" column="0">
+     <widget class="QLabel" name="levelLabel">
+      <property name="text">
+       <string>Audio Level:</string>
+      </property>
+     </widget>
+    </item>
     <item row="4" column="2">
      <widget class="QPushButton" name="pauseButton">
       <property name="enabled">
@@ -76,16 +86,10 @@
       </property>
      </widget>
     </item>
-    <item row="7" column="1" colspan="2">
-     <layout class="QVBoxLayout" name="levelsLayout"/>
-    </item>
-    <item row="5" column="0">
-     <widget class="QRadioButton" name="deepSpeechRadioBtn">
+    <item row="6" column="0">
+     <widget class="QRadioButton" name="googleSpeechRadioBtn">
       <property name="text">
-       <string>DeepSpeech</string>
-      </property>
-      <property name="checked">
-       <bool>true</bool>
+       <string>Google</string>
       </property>
      </widget>
     </item>
@@ -161,17 +165,20 @@
       </layout>
      </widget>
     </item>
-    <item row="7" column="0">
-     <widget class="QLabel" name="levelLabel">
+    <item row="5" column="0">
+     <widget class="QRadioButton" name="deepSpeechRadioBtn">
       <property name="text">
-       <string>Audio Level:</string>
+       <string>DeepSpeech</string>
+      </property>
+      <property name="checked">
+       <bool>true</bool>
       </property>
      </widget>
     </item>
-    <item row="6" column="0">
-     <widget class="QRadioButton" name="googleSpeechRadioBtn">
+    <item row="7" column="0">
+     <widget class="QRadioButton" name="awsTranscribeRadioBtn">
       <property name="text">
-       <string>Google</string>
+       <string>AWS Transcribe</string>
       </property>
      </widget>
     </item>

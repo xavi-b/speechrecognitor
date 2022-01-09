@@ -57,3 +57,5 @@ speechrecognitor
 third-party/*.so
 third-party/*.pbmm
 third-party/*.scorer
+third-party/lib/*
+third-party/include/*

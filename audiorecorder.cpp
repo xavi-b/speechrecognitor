@@ -9,6 +9,7 @@
 #include <QFileDialog>
 #include <QMediaRecorder>
 #include <QStandardPaths>
+#include <QButtonGroup>
 
 static qreal          getPeakValue(const QAudioFormat& format);
 static QVector<qreal> getBufferLevels(const QAudioBuffer& buffer);
@@ -72,7 +73,9 @@ AudioRecorder::AudioRecorder()
 
     deepSpeechWrapper = new DeepSpeechWrapper(this);
     deepSpeechWrapper->setup();
-    googleSpeechWrapper = new GoogleSpeechWrapper(this);
+    googleSpeechWrapper  = new GoogleSpeechWrapper(this);
+    awsTranscribeWrapper = new AWSTranscribeWrapper(this);
+    awsTranscribeWrapper->setup();
     connect(deepSpeechWrapper, &DeepSpeechWrapper::log, this, [=](QString const& str) {
         qDebug() << str;
     });
@@ -85,6 +88,11 @@ AudioRecorder::AudioRecorder()
     connect(googleSpeechWrapper, &GoogleSpeechWrapper::error, this, [=](QString const& str) {
         qDebug() << str;
     });
+
+    QButtonGroup* btnGroup = new QButtonGroup(this);
+    btnGroup->addButton(this->ui->googleSpeechRadioBtn);
+    btnGroup->addButton(this->ui->deepSpeechRadioBtn);
+    btnGroup->addButton(this->ui->awsTranscribeRadioBtn);
 
     this->setOutputLocation();
 }
@@ -172,6 +180,12 @@ void AudioRecorder::toggleRecord()
             settings.setCodec("audio/x-raw");
             container = "audio/x-wav";
         }
+        else if (this->ui->awsTranscribeRadioBtn->isChecked())
+        {
+            settings.setSampleRate(this->awsTranscribeWrapper->getSampleRate());
+            settings.setCodec("audio/x-raw");
+            container = "audio/x-wav";
+        }
 
         settings.setChannelCount(1);
         settings.setBitRate(16);
@@ -187,10 +201,16 @@ void AudioRecorder::toggleRecord()
         QFile* file = new QFile("output.wav");
         file->open(QIODevice::ReadOnly);
 
+        QByteArray data = file->readAll();
+
+        qDebug() << "output.wav" << data.size();
+
         if (this->ui->deepSpeechRadioBtn->isChecked())
-            this->sendToDeepSpeech(file->readAll());
+            this->sendToDeepSpeech(data);
+        else if (this->ui->awsTranscribeRadioBtn->isChecked())
+            this->sendToAWS(data);
         else
-            this->sendToGoogle(file->readAll());
+            this->sendToGoogle(data);
     }
 }
 
@@ -357,4 +377,9 @@ void AudioRecorder::sendToDeepSpeech(QByteArray const& audio)
 void AudioRecorder::sendToGoogle(QByteArray const& audio)
 {
     googleSpeechWrapper->process(audio, this->m_audioRecorder->audioSettings());
+}
+
+void AudioRecorder::sendToAWS(QByteArray const& audio)
+{
+    awsTranscribeWrapper->process(audio, this->m_audioRecorder->audioSettings());
 }

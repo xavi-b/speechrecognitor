@@ -9,7 +9,6 @@ GoogleSpeechWrapper::GoogleSpeechWrapper(QObject* parent)
 
 void GoogleSpeechWrapper::process(QByteArray const& audio, QAudioEncoderSettings const& settings)
 {
-
     const QUrl      url("https://speech.googleapis.com/v1/speech:recognize");
     QNetworkRequest req(url);
     req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
@@ -34,6 +33,8 @@ void GoogleSpeechWrapper::replyFinished(QNetworkReply* reply)
 {
     if (reply->error() != QNetworkReply::NoError)
     {
+        qDebug() << reply->errorString();
+        qDebug() << reply->readAll();
         emit error(reply->errorString());
     }
     else
