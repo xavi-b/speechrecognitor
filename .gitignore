@@ -54,3 +54,4 @@ compile_commands.json
 *.wav
 
 speechrecognitor
+third-party/*.so

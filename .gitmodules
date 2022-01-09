@@ -1,0 +1,3 @@
+[submodule "third-party/DeepSpeech"]
+	path = third-party/DeepSpeech
+	url = git@github.com:mozilla/DeepSpeech.git

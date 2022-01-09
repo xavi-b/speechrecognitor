@@ -17,4 +17,5 @@ SOURCES = \
 
 FORMS += audiorecorder.ui
 
-LIBS += -ldeepspeech
+LIBS += -L$$PWD/third-party/ -ldeepspeech
+INCLUDEPATH += $$PWD/third-party/DeepSpeech/native_client
