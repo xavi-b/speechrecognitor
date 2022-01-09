@@ -1,31 +1,49 @@
 #include "deepspeechwrapper.h"
+#include <time.h>
+#include <sstream>
 
 DeepSpeechWrapper::DeepSpeechWrapper(QObject* parent)
     : QObject(parent)
 {
-    this->lm    = "/usr/share/mozilla/deepspeech/models/lm.binary";
-    this->model = "/usr/share/mozilla/deepspeech/models/output_graph.pbmm";
-    this->trie  = "/usr/share/mozilla/deepspeech/models/trie";
+}
+
+int DeepSpeechWrapper::setup()
+{
+    this->model  = DEEPSPEECHDATA "/deepspeech-0.9.3-models.pbmm";
+    this->scorer = DEEPSPEECHDATA "/deepspeech-0.9.3-models.scorer";
 
     // Initialise DeepSpeech
-    int status = DS_CreateModel(model.toStdString().c_str(), beam_width, &ctx);
+    int status = 0;
 
+    status = DS_CreateModel(model.toStdString().c_str(), &ctx);
     if (status != 0)
     {
         emit error("Could not create model.");
-        return;
+        return 1;
     }
 
-    if (!lm.isEmpty() && (!trie.isEmpty() || load_without_trie))
+    status = DS_SetModelBeamWidth(ctx, beam_width);
+    if (status != 0)
     {
-        int status = DS_EnableDecoderWithLM(ctx,
-                                            lm.toStdString().c_str(),
-                                            trie.toStdString().c_str(),
-                                            lm_alpha,
-                                            lm_beta);
-        if (status != 0)
-            emit error("Could not enable CTC decoder with LM.");
+        emit error("Could not set model beam width.");
+        return 1;
     }
+
+    status = DS_EnableExternalScorer(ctx, scorer.toStdString().c_str());
+    if (status != 0)
+    {
+        emit error("Could not enable external scorer.");
+        return 1;
+    }
+
+    status = DS_SetScorerAlphaBeta(ctx, lm_alpha, lm_beta);
+    if (status != 0)
+    {
+        emit error("Error setting scorer alpha and beta.");
+        return 1;
+    }
+
+    return 0;
 }
 
 DeepSpeechWrapper::~DeepSpeechWrapper()
@@ -42,52 +60,49 @@ int DeepSpeechWrapper::getModelSampleRate()
     return 0;
 }
 
-#include <time.h>
-
-QString DeepSpeechWrapper::metadataToString(Metadata* metadata)
+char* DeepSpeechWrapper::CandidateTranscriptToString(const CandidateTranscript* transcript)
 {
-    QString retval = "";
-
-    for (int i = 0; i < metadata->num_items; i++)
+    std::string retval = "";
+    for (uint i = 0; i < transcript->num_tokens; i++)
     {
-        MetadataItem item = metadata->items[i];
-        retval += item.character;
+        const TokenMetadata& token = transcript->tokens[i];
+        retval += token.text;
     }
-
-    return retval;
+    return strdup(retval.c_str());
 }
 
-std::vector<DeepSpeechWrapper::meta_word> DeepSpeechWrapper::wordsFromMetadata(Metadata* metadata)
+std::vector<DeepSpeechWrapper::meta_word> DeepSpeechWrapper::CandidateTranscriptToWords(const CandidateTranscript* transcript)
 {
     std::vector<meta_word> word_list;
 
-    QString word            = "";
-    float   word_start_time = 0;
+    std::string word            = "";
+    float       word_start_time = 0;
 
-    // Loop through each character
-    for (int i = 0; i < metadata->num_items; i++)
+    // Loop through each token
+    for (uint i = 0; i < transcript->num_tokens; i++)
     {
-        MetadataItem item = metadata->items[i];
+        const TokenMetadata& token = transcript->tokens[i];
 
-        qDebug() << item.character;
-
-        // Append character to word if it's not a space
-        if (strcmp(item.character, u8" ") != 0)
+        // Append token to word if it's not a space
+        if (strcmp(token.text, u8" ") != 0)
         {
             // Log the start time of the new word
             if (word.length() == 0)
-                word_start_time = item.start_time;
-
-            word.append(item.character);
+            {
+                word_start_time = token.start_time;
+            }
+            word.append(token.text);
         }
 
-        // Word boundary is either a space or the last character in the array
-        if (strcmp(item.character, " ") == 0 || strcmp(item.character, u8" ") == 0 || i == metadata->num_items - 1)
+        // Word boundary is either a space or the last token in the array
+        if (strcmp(token.text, u8" ") == 0 || i == transcript->num_tokens - 1)
         {
-            float word_duration = item.start_time - word_start_time;
+            float word_duration = token.start_time - word_start_time;
 
             if (word_duration < 0)
+            {
                 word_duration = 0;
+            }
 
             meta_word w;
             w.word       = word;
@@ -105,24 +120,68 @@ std::vector<DeepSpeechWrapper::meta_word> DeepSpeechWrapper::wordsFromMetadata(M
     return word_list;
 }
 
-QJsonObject DeepSpeechWrapper::metadataToJson(Metadata* metadata)
+std::string DeepSpeechWrapper::CandidateTranscriptToJSON(const CandidateTranscript* transcript)
 {
-    std::vector<meta_word> words = wordsFromMetadata(metadata);
+    std::ostringstream out_string;
 
-    QJsonObject object;
+    std::vector<meta_word> words = CandidateTranscriptToWords(transcript);
 
-    object["metadata"].toObject()["confidence"] = metadata->confidence;
+    out_string << R"("metadata":{"confidence":)" << transcript->confidence << R"(},"words":[)";
 
-    for (size_t i = 0; i < words.size(); i++)
+    for (uint i = 0; i < words.size(); i++)
     {
         meta_word w = words[i];
+        out_string << R"({"word":")" << w.word << R"(","time":)" << w.start_time << R"(,"duration":)" << w.duration << "}";
 
-        object["words"].toArray()[i].toObject()["word"]     = w.word;
-        object["words"].toArray()[i].toObject()["time"]     = w.start_time;
-        object["words"].toArray()[i].toObject()["duration"] = w.duration;
+        if (i < words.size() - 1)
+        {
+            out_string << ",";
+        }
     }
 
-    return object;
+    out_string << "]";
+
+    return out_string.str();
+}
+
+char* DeepSpeechWrapper::MetadataToJSON(Metadata* result)
+{
+    std::ostringstream out_string;
+    out_string << "{\n";
+
+    for (uint j = 0; j < result->num_transcripts; ++j)
+    {
+        const CandidateTranscript* transcript = &result->transcripts[j];
+
+        if (j == 0)
+        {
+            out_string << CandidateTranscriptToJSON(transcript);
+
+            if (result->num_transcripts > 1)
+            {
+                out_string << ",\n"
+                           << R"("alternatives")"
+                           << ":[\n";
+            }
+        }
+        else
+        {
+            out_string << "{" << CandidateTranscriptToJSON(transcript) << "}";
+
+            if (j < result->num_transcripts - 1)
+            {
+                out_string << ",\n";
+            }
+            else
+            {
+                out_string << "\n]";
+            }
+        }
+    }
+
+    out_string << "\n}\n";
+
+    return strdup(out_string.str().c_str());
 }
 
 void DeepSpeechWrapper::process(QByteArray const& audio)
@@ -132,6 +191,7 @@ void DeepSpeechWrapper::process(QByteArray const& audio)
 
 void DeepSpeechWrapper::processAudio(ModelState* context, QByteArray const& audio, bool show_times)
 {
+    qDebug() << "Starting processAudio";
     // Pass audio to DeepSpeech
     // We take half of buffer_size because buffer is a char* while
     // LocalDsSTT() expected a short*
@@ -141,33 +201,37 @@ void DeepSpeechWrapper::processAudio(ModelState* context, QByteArray const& audi
                                      extended_metadata,
                                      json_output);
 
-    emit log(QString("Result %1").arg(result.string));
+    emit log(QString("Result: '%1'").arg(result.string.c_str()));
 
     if (show_times)
         emit log(QString("cpu_time_overall=%1").arg(result.cpu_time_overall));
+    qDebug() << "Ending processAudio";
 }
 
 DeepSpeechWrapper::ds_result DeepSpeechWrapper::runLocalDsSTT(ModelState* aCtx, const short* aBuffer, size_t aBufferSize, bool extended_output, bool json_output)
 {
+    qDebug() << "runLocalDsSTT";
     ds_result res;
 
     clock_t ds_start_time = clock();
 
     if (extended_output)
     {
-        Metadata* metadata = DS_SpeechToTextWithMetadata(aCtx, aBuffer, aBufferSize);
-        res.string         = metadataToString(metadata);
-        DS_FreeMetadata(metadata);
+        qDebug() << "extended_output";
+        Metadata* result = DS_SpeechToTextWithMetadata(aCtx, aBuffer, aBufferSize, 1);
+        res.string       = CandidateTranscriptToString(&result->transcripts[0]);
+        DS_FreeMetadata(result);
     }
     else if (json_output)
     {
-        Metadata*     metadata = DS_SpeechToTextWithMetadata(aCtx, aBuffer, aBufferSize);
-        QJsonDocument doc(metadataToJson(metadata));
-        res.string = doc.toJson(QJsonDocument::Compact);
-        DS_FreeMetadata(metadata);
+        qDebug() << "json_output";
+        Metadata* result = DS_SpeechToTextWithMetadata(aCtx, aBuffer, aBufferSize, json_candidate_transcripts);
+        res.string       = MetadataToJSON(result);
+        DS_FreeMetadata(result);
     }
     else if (stream_size > 0)
     {
+        qDebug() << "stream_size > 0";
         StreamingState* ctx;
         int             status = DS_CreateStream(aCtx, &ctx);
         if (status != DS_ERR_OK)
@@ -175,15 +239,15 @@ DeepSpeechWrapper::ds_result DeepSpeechWrapper::runLocalDsSTT(ModelState* aCtx, 
             res.string = strdup("");
             return res;
         }
-
         size_t      off  = 0;
         const char* last = nullptr;
+        const char* prev = nullptr;
         while (off < aBufferSize)
         {
             size_t cur = aBufferSize - off > stream_size ? stream_size : aBufferSize - off;
             DS_FeedAudioContent(ctx, aBuffer + off, cur);
             off += cur;
-
+            prev                = last;
             const char* partial = DS_IntermediateDecode(ctx);
             if (last == nullptr || strcmp(last, partial))
             {
@@ -194,6 +258,10 @@ DeepSpeechWrapper::ds_result DeepSpeechWrapper::runLocalDsSTT(ModelState* aCtx, 
             {
                 DS_FreeString((char*)partial);
             }
+            if (prev != nullptr && prev != last)
+            {
+                DS_FreeString((char*)prev);
+            }
         }
         if (last != nullptr)
         {
@@ -201,14 +269,57 @@ DeepSpeechWrapper::ds_result DeepSpeechWrapper::runLocalDsSTT(ModelState* aCtx, 
         }
         res.string = DS_FinishStream(ctx);
     }
+    else if (extended_stream_size > 0)
+    {
+        qDebug() << "extended_stream_size > 0";
+        StreamingState* ctx;
+        int             status = DS_CreateStream(aCtx, &ctx);
+        if (status != DS_ERR_OK)
+        {
+            res.string = strdup("");
+            return res;
+        }
+        size_t      off  = 0;
+        const char* last = nullptr;
+        const char* prev = nullptr;
+        while (off < aBufferSize)
+        {
+            size_t cur = aBufferSize - off > extended_stream_size ? extended_stream_size : aBufferSize - off;
+            DS_FeedAudioContent(ctx, aBuffer + off, cur);
+            off += cur;
+            prev                    = last;
+            const Metadata* result  = DS_IntermediateDecodeWithMetadata(ctx, 1);
+            const char*     partial = CandidateTranscriptToString(&result->transcripts[0]);
+            if (last == nullptr || strcmp(last, partial))
+            {
+                printf("%s\n", partial);
+                last = partial;
+            }
+            else
+            {
+                free((char*)partial);
+            }
+            if (prev != nullptr && prev != last)
+            {
+                free((char*)prev);
+            }
+            DS_FreeMetadata((Metadata*)result);
+        }
+        const Metadata* result = DS_FinishStreamWithMetadata(ctx, 1);
+        res.string             = CandidateTranscriptToString(&result->transcripts[0]);
+        DS_FreeMetadata((Metadata*)result);
+        free((char*)last);
+    }
     else
     {
+        qDebug() << "else";
         res.string = DS_SpeechToText(aCtx, aBuffer, aBufferSize);
     }
 
     clock_t ds_end_infer = clock();
 
-    res.cpu_time_overall = ((double)(ds_end_infer - ds_start_time)) / CLOCKS_PER_SEC;
+    res.cpu_time_overall =
+        ((double)(ds_end_infer - ds_start_time)) / CLOCKS_PER_SEC;
 
     return res;
 }

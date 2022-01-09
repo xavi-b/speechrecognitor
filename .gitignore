@@ -55,3 +55,5 @@ compile_commands.json
 
 speechrecognitor
 third-party/*.so
+third-party/*.pbmm
+third-party/*.scorer

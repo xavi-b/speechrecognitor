@@ -70,7 +70,8 @@ AudioRecorder::AudioRecorder()
     connect(m_audioRecorder, &QAudioRecorder::stateChanged, this, &AudioRecorder::onStateChanged);
     connect(m_audioRecorder, QOverload<QMediaRecorder::Error>::of(&QAudioRecorder::error), this, &AudioRecorder::displayErrorMessage);
 
-    deepSpeechWrapper   = new DeepSpeechWrapper(this);
+    deepSpeechWrapper = new DeepSpeechWrapper(this);
+    deepSpeechWrapper->setup();
     googleSpeechWrapper = new GoogleSpeechWrapper(this);
     connect(deepSpeechWrapper, &DeepSpeechWrapper::log, this, [=](QString const& str) {
         qDebug() << str;
