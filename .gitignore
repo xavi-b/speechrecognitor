@@ -54,8 +54,4 @@ compile_commands.json
 *.wav
 
 speechrecognitor
-third-party/*.so
-third-party/*.pbmm
-third-party/*.scorer
-third-party/lib/*
-third-party/include/*
+.qtc_clangd

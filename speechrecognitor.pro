@@ -1,34 +1,22 @@
 TEMPLATE = app
+TARGET = audiorecorder
 
-QT += multimedia widgets
+QT += multimedia
+
+win32:INCLUDEPATH += $$PWD
 
 HEADERS = \
     audiorecorder.h \
-    audiolevel.h \
-    awstranscribewrapper.h \
-    deepspeechwrapper.h \
-    googlespeechwrapper.h
+    audiolevel.h
 
 SOURCES = \
-    awstranscribewrapper.cpp \
-    deepspeechwrapper.cpp \
-    googlespeechwrapper.cpp \
     main.cpp \
     audiorecorder.cpp \
     audiolevel.cpp
 
 FORMS += audiorecorder.ui
 
-DEFINES += DEEPSPEECHDATA=\\\"$$PWD/third-party\\\"
+target.path = $$[QT_INSTALL_EXAMPLES]/multimedia/audiorecorder
+INSTALLS += target
 
-LIBS += -L$$PWD/third-party/ -ldeepspeech
-INCLUDEPATH += $$PWD/third-party/DeepSpeech/native_client
-
-LIBS += -L$$PWD/third-party/lib \
-    -laws-cpp-sdk-core \
-    -laws-cpp-sdk-transcribestreaming
-INCLUDEPATH += $$PWD/third-party/include
-
-debug {
-CONFIG += console
-}
+QT+=widgets

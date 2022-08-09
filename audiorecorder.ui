@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>297</width>
-    <height>449</height>
+    <height>374</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,28 +15,25 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout_3">
-    <item row="8" column="1" colspan="2">
-     <layout class="QVBoxLayout" name="levelsLayout"/>
-    </item>
-    <item row="8" column="0">
-     <widget class="QLabel" name="levelLabel">
-      <property name="text">
-       <string>Audio Level:</string>
-      </property>
-     </widget>
-    </item>
-    <item row="4" column="2">
-     <widget class="QPushButton" name="pauseButton">
-      <property name="enabled">
-       <bool>false</bool>
-      </property>
-      <property name="text">
-       <string>Pause</string>
-      </property>
-     </widget>
-    </item>
     <item row="0" column="0" colspan="3">
      <layout class="QGridLayout" name="gridLayout_2">
+      <item row="3" column="0">
+       <widget class="QLabel" name="label_4">
+        <property name="text">
+         <string>Sample rate:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QComboBox" name="audioDeviceBox"/>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_2">
+        <property name="text">
+         <string>Audio Codec:</string>
+        </property>
+       </widget>
+      </item>
       <item row="0" column="0">
        <widget class="QLabel" name="label">
         <property name="text">
@@ -51,47 +48,26 @@
         </property>
        </widget>
       </item>
-      <item row="0" column="1">
-       <widget class="QComboBox" name="audioDeviceBox"/>
-      </item>
       <item row="2" column="1">
        <widget class="QComboBox" name="containerBox"/>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_2">
-        <property name="text">
-         <string>Audio Codec:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="QComboBox" name="audioCodecBox"/>
-      </item>
-      <item row="3" column="0">
-       <widget class="QLabel" name="label_4">
-        <property name="text">
-         <string>Sample rate:</string>
-        </property>
-       </widget>
       </item>
       <item row="3" column="1">
        <widget class="QComboBox" name="sampleRateBox"/>
       </item>
+      <item row="1" column="1">
+       <widget class="QComboBox" name="audioCodecBox"/>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="label_5">
+        <property name="text">
+         <string>Channels:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="1">
+       <widget class="QComboBox" name="channelsBox"/>
+      </item>
      </layout>
-    </item>
-    <item row="4" column="0">
-     <widget class="QPushButton" name="recordButton">
-      <property name="text">
-       <string>Record</string>
-      </property>
-     </widget>
-    </item>
-    <item row="6" column="0">
-     <widget class="QRadioButton" name="googleSpeechRadioBtn">
-      <property name="text">
-       <string>Google</string>
-      </property>
-     </widget>
     </item>
     <item row="1" column="0" colspan="3">
      <widget class="QGroupBox" name="groupBox">
@@ -165,22 +141,39 @@
       </layout>
      </widget>
     </item>
-    <item row="5" column="0">
-     <widget class="QRadioButton" name="deepSpeechRadioBtn">
+    <item row="2" column="0">
+     <widget class="QPushButton" name="outputButton">
       <property name="text">
-       <string>DeepSpeech</string>
-      </property>
-      <property name="checked">
-       <bool>true</bool>
+       <string>Output...</string>
       </property>
      </widget>
     </item>
-    <item row="7" column="0">
-     <widget class="QRadioButton" name="awsTranscribeRadioBtn">
+    <item row="2" column="1">
+     <widget class="QPushButton" name="recordButton">
       <property name="text">
-       <string>AWS Transcribe</string>
+       <string>Record</string>
       </property>
      </widget>
+    </item>
+    <item row="2" column="2">
+     <widget class="QPushButton" name="pauseButton">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="text">
+       <string>Pause</string>
+      </property>
+     </widget>
+    </item>
+    <item row="3" column="0">
+     <widget class="QLabel" name="levelLabel">
+      <property name="text">
+       <string>Audio Level:</string>
+      </property>
+     </widget>
+    </item>
+    <item row="3" column="1" colspan="2">
+     <layout class="QVBoxLayout" name="levelsLayout"/>
     </item>
    </layout>
   </widget>
@@ -217,6 +210,22 @@
     <hint type="destinationlabel">
      <x>190</x>
      <y>291</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>outputButton</sender>
+   <signal>clicked()</signal>
+   <receiver>AudioRecorder</receiver>
+   <slot>setOutputLocation()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>46</x>
+     <y>340</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>6</x>
+     <y>302</y>
     </hint>
    </hints>
   </connection>

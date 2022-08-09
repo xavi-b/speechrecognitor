@@ -1,16 +1,9 @@
-https://deepspeech.readthedocs.io/en/r0.9/BUILDING.html
-https://deepspeech.readthedocs.io/en/v0.8.2/BUILDING.html
-
-https://github.com/bazelbuild/bazel/releases/tag/3.1.0
-
-https://aws.amazon.com/fr/blogs/developer/real-time-streaming-transcription-with-the-aws-c-sdk/
-
-# AWS SDK C++
-```
-mkdir build
-cd build
-cmake .. -DBUILD_ONLY="core;transcribestreaming" -DCMAKE_INSTALL_PREFIX=$PWD/../../
-# -DCMAKE_BUILD_TYPE=Debug -DENABLE_TESTING=OFF
-make
-make install
-```
+# Vosk dependency
+pip3 install vosk
+pip3 install websockets
+apt install ffmpeg
+touch test.mp4
+vosk-transcriber -l en -i test.mp4 -o test.txt # to download en model, will fail since test.mp4 is invalid
+vosk-transcriber -l fr -i test.mp4 -o test.txt # to download fr model, will fail since test.mp4 is invalid
+rm test.mp4
+rm test.txt
