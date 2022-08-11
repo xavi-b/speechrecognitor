@@ -37,11 +37,9 @@ void SpeechRecognitor::updateProgress(qint64 duration)
 
     emit progressUpdated(duration);
 
-    qDebug() << "duration" << duration;
     // minimum duration
     if (duration > durationThreshold)
     {
-        qDebug() << "average" << average;
         // if silent
         if (average < silentVolumeThreshold)
         {
@@ -53,7 +51,6 @@ void SpeechRecognitor::updateProgress(qint64 duration)
         }
         else
         {
-            qDebug() << "m_silentStartTime" << m_silentStartTime;
             // storing last time it was not silent
             m_silentStartTime = duration;
         }
@@ -197,12 +194,8 @@ void SpeechRecognitor::processLang(QString const& lang)
 {
     QString command = QString("from vosk import Model; model = Model(lang=\"%1\")").arg(lang);
 
-    qDebug().noquote() << "processLang" << lang << command;
-
     if (QProcess::execute("python", {"-u", "-c", command}) == 0)
     {
-        qDebug() << "Lang changed to" << lang;
-
         m_lang = lang;
 
         emit langChanged(m_lang);
