@@ -19,6 +19,7 @@ public:
 
     void         record();
     void         stop();
+    void         cancel();
     void         updateLanguages();
     QList<qreal> audioLevels() const;
 
@@ -60,6 +61,7 @@ private:
     QAudioRecorder* m_audioRecorder = nullptr;
     QAudioProbe*    m_probe         = nullptr;
     QList<qreal>    m_audioLevels;
+    qint64          m_silentStartTime = 0;
 };
 
 } // namespace XB

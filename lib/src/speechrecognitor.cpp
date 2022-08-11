@@ -26,12 +26,38 @@ SpeechRecognitor::SpeechRecognitor(QObject* parent)
 
 void SpeechRecognitor::updateProgress(qint64 duration)
 {
-    qDebug() << "duration" << duration;
-    qDebug() << "audio levels" << m_audioLevels;
-    if (m_audioRecorder->error() != QMediaRecorder::NoError || duration < 2000)
+    qint64 durationThreshold       = 2000;
+    qint64 silentDurationThreshold = 5000;
+    qreal  silentVolumeThreshold   = 0.02;
+
+    qreal average = std::reduce(m_audioLevels.begin(), m_audioLevels.end()) / m_audioLevels.size();
+
+    if (m_audioRecorder->error() != QMediaRecorder::NoError || duration < durationThreshold)
         return;
 
     emit progressUpdated(duration);
+
+    qDebug() << "duration" << duration;
+    // minimum duration
+    if (duration > durationThreshold)
+    {
+        qDebug() << "average" << average;
+        // if silent
+        if (average < silentVolumeThreshold)
+        {
+            // if silent for over some time
+            if ((duration - m_silentStartTime) > silentDurationThreshold)
+            {
+                stop();
+            }
+        }
+        else
+        {
+            qDebug() << "m_silentStartTime" << m_silentStartTime;
+            // storing last time it was not silent
+            m_silentStartTime = duration;
+        }
+    }
 }
 
 void SpeechRecognitor::updateStatus(QMediaRecorder::Status status)
@@ -53,7 +79,6 @@ void SpeechRecognitor::updateStatus(QMediaRecorder::Status status)
     emit statusChanged(status);
 }
 
-// TODO minimum duration 2 sec + stop if silence
 void SpeechRecognitor::record()
 {
     switch (m_audioRecorder->state())
@@ -65,6 +90,7 @@ void SpeechRecognitor::record()
     case QMediaRecorder::StoppedState:
         m_audioRecorder->setOutputLocation(QUrl::fromLocalFile(QDir(QStandardPaths::writableLocation(QStandardPaths::StandardLocation::TempLocation)).filePath(QDateTime::currentDateTimeUtc().toString(Qt::ISODate) + ".wav")));
         m_audioRecorder->record();
+        m_silentStartTime = 0;
         break;
     }
 }
@@ -77,6 +103,19 @@ void SpeechRecognitor::stop()
     case QMediaRecorder::PausedState:
         m_audioRecorder->stop();
         QtConcurrent::run(std::bind(&SpeechRecognitor::processRecord, this));
+        break;
+    case QMediaRecorder::StoppedState:
+        break;
+    }
+}
+
+void SpeechRecognitor::cancel()
+{
+    switch (m_audioRecorder->state())
+    {
+    case QMediaRecorder::RecordingState:
+    case QMediaRecorder::PausedState:
+        m_audioRecorder->stop();
         break;
     case QMediaRecorder::StoppedState:
         break;
