@@ -1,7 +1,7 @@
 #include "audiorecorder.h"
 #include "audiolevel.h"
 
-#include <QVBoxLayout>
+#include <QInputDialog>
 
 AudioRecorder::AudioRecorder()
 {
@@ -18,8 +18,17 @@ AudioRecorder::AudioRecorder()
     connect(m_speechrecognitor, &XB::SpeechRecognitor::languagesChanged, this, [=](QStringList const& languages) {
         qDebug() << "Languages:" << languages;
     });
+    connect(m_speechrecognitor, &XB::SpeechRecognitor::langChanged, this, [=](QString const& lang) {
+        qDebug() << "Lang:" << lang;
+    });
 
     QVBoxLayout* layout = new QVBoxLayout;
+
+    QPushButton* setLangButton = new QPushButton("Set lang");
+    connect(setLangButton, &QPushButton::clicked, this, [=]() {
+        m_speechrecognitor->setLang(QInputDialog::getText(this, "Set lang", QString()));
+    });
+    layout->addWidget(setLangButton);
 
     QPushButton* languagesButton = new QPushButton("Update languages");
     connect(languagesButton, &QPushButton::clicked, m_speechrecognitor, &XB::SpeechRecognitor::updateLanguages);

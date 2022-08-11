@@ -48,6 +48,7 @@ signals:
 private slots:
     void processRecord();
     void processLanguages();
+    void processLang(QString const& lang);
 
     void updateStatus(QMediaRecorder::Status);
     void updateProgress(qint64 pos);

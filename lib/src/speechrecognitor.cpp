@@ -26,6 +26,8 @@ SpeechRecognitor::SpeechRecognitor(QObject* parent)
 
 void SpeechRecognitor::updateProgress(qint64 duration)
 {
+    qDebug() << "duration" << duration;
+    qDebug() << "audio levels" << m_audioLevels;
     if (m_audioRecorder->error() != QMediaRecorder::NoError || duration < 2000)
         return;
 
@@ -61,20 +63,6 @@ void SpeechRecognitor::record()
     case QMediaRecorder::RecordingState:
         stop();
     case QMediaRecorder::StoppedState:
-        //        m_audioRecorder->setAudioInput(boxValue(ui->audioDeviceBox).toString());
-
-        QAudioEncoderSettings settings;
-        //        settings.setCodec(boxValue(ui->audioCodecBox).toString());
-        //        settings.setSampleRate(boxValue(ui->sampleRateBox).toInt());
-        //        settings.setBitRate(boxValue(ui->bitrateBox).toInt());
-        //        settings.setChannelCount(boxValue(ui->channelsBox).toInt());
-        //        settings.setQuality(QMultimedia::EncodingQuality(ui->qualitySlider->value()));
-        //        settings.setEncodingMode(ui->constantQualityRadioButton->isChecked() ? QMultimedia::ConstantQualityEncoding : QMultimedia::ConstantBitRateEncoding);
-
-        QString container;
-        //        container = boxValue(ui->containerBox).toString();
-
-        m_audioRecorder->setEncodingSettings(settings, QVideoEncoderSettings(), container);
         m_audioRecorder->setOutputLocation(QUrl::fromLocalFile(QDir(QStandardPaths::writableLocation(QStandardPaths::StandardLocation::TempLocation)).filePath(QDateTime::currentDateTimeUtc().toString(Qt::ISODate) + ".wav")));
         m_audioRecorder->record();
         break;
@@ -115,12 +103,7 @@ void SpeechRecognitor::setLang(const QString& lang)
     if (m_lang == lang)
         return;
 
-    if (QProcess::execute("python3", {"-c", QString("'from vosk import Model; model = Model(lang=\"%1\")'").arg(m_lang)}) == 0)
-    {
-        m_lang = lang;
-
-        emit langChanged(m_lang);
-    }
+    QtConcurrent::run(std::bind(&SpeechRecognitor::processLang, this, lang));
 }
 
 QMediaRecorder::Error SpeechRecognitor::error() const
@@ -169,6 +152,22 @@ void SpeechRecognitor::processLanguages()
         emit languagesChanged(QString(process.readAllStandardOutput()).split('\n'));
     else
         emit languagesChanged(QStringList());
+}
+
+void SpeechRecognitor::processLang(QString const& lang)
+{
+    QString command = QString("from vosk import Model; model = Model(lang=\"%1\")").arg(lang);
+
+    qDebug().noquote() << "processLang" << lang << command;
+
+    if (QProcess::execute("python", {"-u", "-c", command}) == 0)
+    {
+        qDebug() << "Lang changed to" << lang;
+
+        m_lang = lang;
+
+        emit langChanged(m_lang);
+    }
 }
 
 void SpeechRecognitor::clearAudioLevels()
