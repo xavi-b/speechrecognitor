@@ -1,9 +1,6 @@
 # Vosk dependency
+apt install python3 ffmpeg
 pip3 install vosk
 pip3 install websockets
-apt install ffmpeg
-touch test.mp4
-vosk-transcriber -l en -i test.mp4 -o test.txt # to download en model, will fail since test.mp4 is invalid
-vosk-transcriber -l fr -i test.mp4 -o test.txt # to download fr model, will fail since test.mp4 is invalid
-rm test.mp4
-rm test.txt
+python3 -c 'from vosk import Model; model = Model(lang="fr")' # to download fr model
+python3 -c 'from vosk import Model; model = Model(lang="de")' # to download de model
